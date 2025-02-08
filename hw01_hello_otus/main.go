@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/golang/example/stringutil"
+	"github.com/golang/example/stringutil" //nolint
 )
 
 func main() {
