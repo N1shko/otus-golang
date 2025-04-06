@@ -6,19 +6,10 @@ import (
 )
 
 func Top10(str string) []string {
-	str = strings.ReplaceAll(str, "\n", " ")
-	str = strings.ReplaceAll(str, "\t", " ")
-	split := strings.Split(str, " ")
+	split := strings.Fields(str)
 	wordsMapped := map[string]int{}
 	for _, word := range split {
-		if word == "" {
-			continue
-		}
-		if val, ok := wordsMapped[word]; ok {
-			wordsMapped[word] = val + 1
-		} else {
-			wordsMapped[word] = 1
-		}
+		wordsMapped[word] += 1
 	}
 
 	sliceSorted := make([]string, 0, len(wordsMapped))
