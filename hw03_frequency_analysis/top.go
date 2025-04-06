@@ -9,7 +9,7 @@ func Top10(str string) []string {
 	split := strings.Fields(str)
 	wordsMapped := map[string]int{}
 	for _, word := range split {
-		wordsMapped[word] += 1
+		wordsMapped[word]++
 	}
 
 	sliceSorted := make([]string, 0, len(wordsMapped))

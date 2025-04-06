@@ -43,14 +43,14 @@ var text = `Как видите, он  спускается  по  лестни�
 	посидеть у огня и послушать какую-нибудь интересную сказку.
 		В этот вечер...`
 
-var self_text = `привет привет
+var selfText = `привет привет
 привет привет привет привет привет привет привет привет привет привет
 привет привет
 привет привет
 привет привет
 привет привет`
 
-var english_text = `
+var englishText = `
 Global warming refers to the increase in the planet’s overall average
 temperature in recent decades. Natural processes have always affected
 Earth’s temperature and climate, but more recently, the planet’s 
@@ -110,7 +110,7 @@ func TestTop10(t *testing.T) {
 		expected := []string{
 			"привет",
 		}
-		require.Equal(t, expected, Top10(self_text))
+		require.Equal(t, expected, Top10(selfText))
 	})
 	t.Run("english test", func(t *testing.T) {
 		expected := []string{
@@ -125,6 +125,6 @@ func TestTop10(t *testing.T) {
 			"heat",
 			"of",
 		}
-		require.Equal(t, expected, Top10(english_text))
+		require.Equal(t, expected, Top10(englishText))
 	})
 }
