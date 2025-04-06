@@ -28,14 +28,11 @@ func Top10(str string) []string {
 	sort.Slice(sliceSorted, func(i, j int) bool {
 		if wordsMapped[sliceSorted[i]] == wordsMapped[sliceSorted[j]] {
 			return sliceSorted[i] < sliceSorted[j]
-		} else {
-			return wordsMapped[sliceSorted[i]] > wordsMapped[sliceSorted[j]]
 		}
+		return wordsMapped[sliceSorted[i]] > wordsMapped[sliceSorted[j]]
 	})
 	if len(sliceSorted) < 10 {
 		return sliceSorted
-
-	} else {
-		return sliceSorted[:10]
 	}
+	return sliceSorted[:10]
 }
