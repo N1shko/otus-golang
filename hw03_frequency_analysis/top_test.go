@@ -43,6 +43,33 @@ var text = `Как видите, он  спускается  по  лестни�
 	посидеть у огня и послушать какую-нибудь интересную сказку.
 		В этот вечер...`
 
+var selfText = `привет привет
+привет привет привет привет привет привет привет привет привет привет
+привет привет
+привет привет
+привет привет
+привет привет`
+
+var englishText = `
+Global warming refers to the increase in the planet’s overall average
+temperature in recent decades. Natural processes have always affected
+Earth’s temperature and climate, but more recently, the planet’s 
+temperature and climate have changed at a higher pace than nature 
+alone can explain. These rapid changes are due to human activities 
+and the widespread use of fossil fuels for energy.
+
+Fossil fuels include coal, oil and natural gas. Burning fossil fuels 
+causes what is known as the “greenhouse effect” in Earth’s atmosphere. 
+The greenhouse effect happens when the sun’s rays penetrate the 
+atmosphere, and the Earth’s surface reflects that heat. Some of the 
+gasses in the atmosphere then trap heat over Earth. Gasses emitted by 
+the burning of fossil fuels are very good at trapping heat and 
+preventing it from leaving the atmosphere. These greenhouse gasses are
+carbon dioxide, methane, nitrous oxide, chlorofluorocarbons and water 
+vapor. The excess heat in the atmosphere has caused the planet’s 
+average global temperature to rise over time, otherwise known as 
+global warming.`
+
 func TestTop10(t *testing.T) {
 	t.Run("no words in empty string", func(t *testing.T) {
 		require.Len(t, Top10(""), 0)
@@ -78,5 +105,26 @@ func TestTop10(t *testing.T) {
 			}
 			require.Equal(t, expected, Top10(text))
 		}
+	})
+	t.Run("simple test", func(t *testing.T) {
+		expected := []string{
+			"привет",
+		}
+		require.Equal(t, expected, Top10(selfText))
+	})
+	t.Run("english test", func(t *testing.T) {
+		expected := []string{
+			"the",
+			"and",
+			"in",
+			"fuels",
+			"temperature",
+			"Earth’s",
+			"are",
+			"fossil",
+			"heat",
+			"of",
+		}
+		require.Equal(t, expected, Top10(englishText))
 	})
 }
