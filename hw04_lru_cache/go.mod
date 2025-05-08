@@ -1,4 +1,4 @@
-module github.com/N1shko/hw04_lru_cache
+module github.com/N1shko/otus-golang/hw04_lru_cache
 
 go 1.22
 
