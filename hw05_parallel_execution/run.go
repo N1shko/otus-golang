@@ -16,16 +16,19 @@ func Run(tasks []Task, n, m int) error {
 	var wg sync.WaitGroup
 
 	taskPool := make(chan Task)
-	defer close(taskPool)
+	defer func() {
+		close(taskPool)
+		wg.Wait()
+	}()
+	wg.Add(n)
 	for i := 0; i < n; i++ {
 		go func() {
 			for taskFromPool := range taskPool {
-				wg.Add(1)
 				if err := taskFromPool(); err != nil {
 					atomic.AddInt32(&errCount, 1)
 				}
-				wg.Done()
 			}
+			wg.Done()
 		}()
 	}
 	for _, task := range tasks {
@@ -34,6 +37,5 @@ func Run(tasks []Task, n, m int) error {
 		}
 		taskPool <- task
 	}
-	wg.Wait()
 	return nil
 }
