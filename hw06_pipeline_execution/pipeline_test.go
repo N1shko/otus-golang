@@ -150,6 +150,38 @@ func TestAllStageStop(t *testing.T) {
 		wg.Wait()
 
 		require.Len(t, result, 0)
+	})
+}
 
+func TestEmptyPipeline(t *testing.T) {
+	wg := sync.WaitGroup{}
+	// Stage generator
+	stages := []Stage{}
+	t.Run("empty case", func(t *testing.T) {
+		in := make(Bi)
+		done := make(Bi)
+		data := []int{1, 2, 3, 4, 5}
+
+		// Abort after 200ms
+		abortDur := sleepPerStage * 2
+		go func() {
+			<-time.After(abortDur)
+			close(done)
+		}()
+
+		go func() {
+			for _, v := range data {
+				in <- v
+			}
+			close(in)
+		}()
+
+		result := make([]int, 0, 10)
+		for s := range ExecutePipeline(in, done, stages...) {
+			result = append(result, s.(int))
+		}
+		wg.Wait()
+
+		require.Equal(t, data, result)
 	})
 }
