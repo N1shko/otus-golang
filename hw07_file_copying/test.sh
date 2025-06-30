@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env zsh
 set -xeuo pipefail
 
 go build -o go-cp
