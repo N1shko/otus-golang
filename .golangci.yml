@@ -8,6 +8,8 @@ linters-settings:
   funlen:
     lines: 150
     statements: 80
+  exhaustive:
+    default-signifies-exhaustive: true
   depguard:
     rules:
       Main:

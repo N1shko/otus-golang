@@ -20,7 +20,7 @@ type (
 		Email  string          `validate:"regexp:^\\w+@\\w+\\.\\w+$"`
 		Role   UserRole        `validate:"in:admin,stuff"`
 		Phones []string        `validate:"len:11"`
-		meta   json.RawMessage //nolint:unused
+		meta   json.RawMessage //nolint:nolintlint
 	}
 
 	App struct {
@@ -71,19 +71,19 @@ func TestValidate(t *testing.T) {
 			ValidationErrors{
 				ValidationError{
 					"ID",
-					fmt.Errorf("Value '123' not valid for rule 'len'"),
+					fmt.Errorf("value '123' not valid for rule 'len'"),
 				},
 				ValidationError{
 					"Age",
-					fmt.Errorf("Value '17' not valid for rule 'min'"),
+					fmt.Errorf("value '17' not valid for rule 'min'"),
 				},
 				ValidationError{
 					"Role",
-					fmt.Errorf("Value 'stuffer' not valid for rule 'in'"),
+					fmt.Errorf("value 'stuffer' not valid for rule 'in'"),
 				},
 				ValidationError{
 					"Email",
-					fmt.Errorf("Value 'exampleNOATgmail.com' not valid for rule 'regexp'"),
+					fmt.Errorf("value 'exampleNOATgmail.com' not valid for rule 'regexp'"),
 				},
 			},
 		},
@@ -95,11 +95,11 @@ func TestValidate(t *testing.T) {
 	}{
 		{
 			BadStructRule{"some1"},
-			UnsupportedRule,
+			ErrUnsupportedRule,
 		},
 		{
 			BadStructUsage{"some1"},
-			WrongRuleUsage,
+			ErrWrongRuleUsage,
 		},
 		{
 			"somethingNotStrcut",
