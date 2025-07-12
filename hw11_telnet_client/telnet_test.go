@@ -63,3 +63,46 @@ func TestTelnetClient(t *testing.T) {
 		wg.Wait()
 	})
 }
+
+func TestTelnetClient_ConnectTimeout(t *testing.T) {
+	client := NewTelnetClient("127.0.0.2:12345", 500*time.Millisecond, nil, nil)
+	start := time.Now()
+	err := client.Connect()
+	require.Error(t, err)
+	require.WithinDuration(t, time.Now(), start.Add(500*time.Millisecond), time.Second)
+}
+
+func TestTelnetClient_ReceiveTimeout_NoServerData(t *testing.T) {
+	ln, err := net.Listen("tcp", "127.0.0.1:")
+	require.NoError(t, err)
+	defer ln.Close()
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		conn, err := ln.Accept()
+		require.NoError(t, err)
+		defer conn.Close()
+		time.Sleep(3 * time.Second)
+	}()
+
+	clientIn := &bytes.Buffer{}
+	clientOut := &bytes.Buffer{}
+	client := NewTelnetClient(ln.Addr().String(), 500*time.Millisecond, io.NopCloser(clientIn), clientOut)
+	require.NoError(t, client.Connect())
+	defer client.Close()
+
+	done := make(chan struct{})
+	go func() {
+		_ = client.Receive()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		t.Error("That should not be returned")
+	case <-time.After(2 * time.Second):
+	}
+	wg.Wait()
+}
