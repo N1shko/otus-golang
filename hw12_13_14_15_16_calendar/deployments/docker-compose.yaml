@@ -9,9 +9,12 @@ services:
       - POSTGRES_PASSWORD
     volumes:
       # - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-      - ./db_data:/var/lib/postgresql/data
+      - pg_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
 networks:
   postgres:
     driver: bridge
+
+volumes:
+  pg_data:

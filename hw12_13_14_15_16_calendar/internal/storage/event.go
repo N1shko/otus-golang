@@ -6,8 +6,10 @@ import (
 	"time"
 )
 
-var ErrExists = errors.New("storage: this event already exists")
-var ErrNotFound = errors.New("storage: could not find that event")
+var (
+	ErrExists   = errors.New("storage: this event already exists")
+	ErrNotFound = errors.New("storage: could not find that event")
+)
 
 type Event struct {
 	ID          string    `db:"id"`

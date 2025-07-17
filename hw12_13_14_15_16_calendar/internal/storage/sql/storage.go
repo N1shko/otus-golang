@@ -15,10 +15,10 @@ func NewPostgresStorage(db *sql.DB) *Storage {
 	return &Storage{db: db}
 }
 
-func (r *Storage) AddEvent(ctx context.Context, e storage.Event) error {
+func (s *Storage) AddEvent(ctx context.Context, e storage.Event) error {
 	sql := `INSERT INTO events (id, title, date_start, date_end, descr, user_id, send_before)
             VALUES ($1, $2, $3, $4, $5, $6, $7)`
-	_, err := r.db.ExecContext(ctx, sql,
+	_, err := s.db.ExecContext(ctx, sql,
 		e.ID, e.Title, e.DateStart, e.DateEnd, e.Description, e.UserID, e.SendBefore)
 	return err
 }

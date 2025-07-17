@@ -46,7 +46,7 @@ func NewConfig(path string) (Config, error) {
 	viper.SetConfigFile(path)
 
 	viper.AutomaticEnv()
-	viper.SetEnvPrefix("CALENDAR") //it is gonna be k8s secret one day
+	viper.SetEnvPrefix("CALENDAR") // it is gonna be k8s secret one day
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
 	if err := viper.ReadInConfig(); err != nil {

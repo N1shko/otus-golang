@@ -16,8 +16,7 @@ type Server struct {
 	server *http.Server
 }
 
-type Logger interface {
-}
+type Logger interface{}
 
 func NewServer(logger *logger.Logger, address string, app *app.App) *Server {
 	handler := NewHandler(logger, app)

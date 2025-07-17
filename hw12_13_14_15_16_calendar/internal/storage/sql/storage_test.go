@@ -54,7 +54,6 @@ func TestStorage_AddEvent(t *testing.T) {
 
 	err = mock.ExpectationsWereMet()
 	require.NoError(t, err)
-
 }
 
 func TestStorage_UpdateEvent(t *testing.T) {

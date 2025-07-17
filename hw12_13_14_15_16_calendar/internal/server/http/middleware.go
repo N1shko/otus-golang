@@ -3,6 +3,7 @@ package internalhttp
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/N1shko/otus-golang/hw12_13_14_15_calendar/internal/logger"
@@ -23,7 +24,7 @@ func LoggingMiddleware(next http.Handler, logger *logger.Logger) http.Handler {
 		start := time.Now()
 		lrw := &loggingResponseWriter{ResponseWriter: w, statusCode: http.StatusOK}
 		next.ServeHTTP(lrw, r)
-		latency := time.Since(start).Milliseconds()
+		latency := fmt.Sprintf("%d", time.Since(start).Milliseconds())
 		clientIP := r.RemoteAddr
 		if colon := len(clientIP) - 1; colon > 0 && clientIP[colon] == ']' {
 			clientIP = clientIP[:colon]
@@ -43,16 +44,18 @@ func LoggingMiddleware(next http.Handler, logger *logger.Logger) http.Handler {
 		} else {
 			userAgent = fmt.Sprintf("%q", userAgent)
 		}
-		fmt.Printf(
-			"%s %s %s %s %s %d %d %s\n",
-			clientIP,
-			date,
-			r.Method,
-			r.URL.RequestURI(),
-			r.Proto,
-			lrw.statusCode,
-			latency,
-			userAgent,
+		code := strconv.Itoa(lrw.statusCode)
+		uri := r.URL.RequestURI()
+		logger.Info(
+			"Request",
+			"client_ip", clientIP,
+			"date", date,
+			"method", r.Method,
+			"request_uri", uri,
+			"proto", r.Proto,
+			"code", code,
+			"latency", latency,
+			"user_agent", userAgent,
 		)
 	})
 }
