@@ -2,16 +2,22 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"flag"
+	"fmt"
+	"log"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
-	"github.com/fixme_my_friend/hw12_13_14_15_calendar/internal/app"
-	"github.com/fixme_my_friend/hw12_13_14_15_calendar/internal/logger"
-	internalhttp "github.com/fixme_my_friend/hw12_13_14_15_calendar/internal/server/http"
-	memorystorage "github.com/fixme_my_friend/hw12_13_14_15_calendar/internal/storage/memory"
+	"github.com/N1shko/otus-golang/hw12_13_14_15_calendar/internal/app"
+	"github.com/N1shko/otus-golang/hw12_13_14_15_calendar/internal/logger"
+	internalhttp "github.com/N1shko/otus-golang/hw12_13_14_15_calendar/internal/server/http"
+	"github.com/N1shko/otus-golang/hw12_13_14_15_calendar/internal/storage"
+	memorystorage "github.com/N1shko/otus-golang/hw12_13_14_15_calendar/internal/storage/memory"
+	sqlstorage "github.com/N1shko/otus-golang/hw12_13_14_15_calendar/internal/storage/sql"
+	_ "github.com/jackc/pgx/v4/stdlib"
 )
 
 var configFile string
@@ -28,16 +34,49 @@ func main() {
 		return
 	}
 
-	config := NewConfig()
+	config, err := NewConfig(configFile)
+	if err != nil {
+		log.Fatalf("Failed to parse config from %s", configFile)
+	}
 	logg := logger.New(config.Logger.Level)
+	var repo storage.EventRepo
+	ctx := context.Background()
+	switch config.Storage.Type {
+	case "memory":
+		repo = memorystorage.New()
 
-	storage := memorystorage.New()
-	calendar := app.New(logg, storage)
+	case "db":
+		dsn := fmt.Sprintf(
+			"host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
+			config.Storage.DB.Host,
+			config.Storage.DB.Port,
+			config.Storage.DB.User,
+			config.Storage.DB.Password,
+			config.Storage.DB.Database,
+		)
 
-	server := internalhttp.NewServer(logg, calendar)
+		db, err := sql.Open("pgx", dsn)
+		if err != nil {
+			log.Fatalf("failed to open DB: %v", err)
+		}
 
-	ctx, cancel := signal.NotifyContext(context.Background(),
-		syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
+		ctx, DBcancel := context.WithTimeout(ctx, 5*time.Second)
+		if err := db.PingContext(ctx); err != nil {
+			DBcancel()
+			log.Fatalf("cannot ping DB: %v", err)
+		}
+		defer DBcancel()
+
+		logg.Info("Successfully connected to database")
+		repo = sqlstorage.NewPostgresStorage(db)
+
+	default:
+		log.Fatalf("unsupported storage type: %s", config.Storage.Type) //nolint:gocritic
+	}
+	calendar := app.New(logg, repo)
+	server := internalhttp.NewServer(logg, ":8080", calendar)
+
+	ctx, cancel := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
 	defer cancel()
 
 	go func() {
@@ -56,6 +95,6 @@ func main() {
 	if err := server.Start(ctx); err != nil {
 		logg.Error("failed to start http server: " + err.Error())
 		cancel()
-		os.Exit(1) //nolint:gocritic
+		os.Exit(1)
 	}
 }

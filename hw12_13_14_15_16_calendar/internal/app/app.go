@@ -2,19 +2,28 @@ package app
 
 import (
 	"context"
+
+	"github.com/N1shko/otus-golang/hw12_13_14_15_calendar/internal/logger"
+	"github.com/N1shko/otus-golang/hw12_13_14_15_calendar/internal/storage"
 )
 
-type App struct { // TODO
+type App struct {
+	logger  *logger.Logger
+	storage storage.EventRepo
 }
 
-type Logger interface { // TODO
+type Storage interface {
+	AddEvent(context.Context, storage.Event) error
+	UpdateEvent(context.Context, storage.Event) error
+	DeleteEvent(context.Context, storage.Event) error
+	ListEvents(context.Context) ([]storage.Event, error)
 }
 
-type Storage interface { // TODO
-}
-
-func New(logger Logger, storage Storage) *App {
-	return &App{}
+func New(logger *logger.Logger, storage Storage) *App {
+	return &App{
+		logger,
+		storage,
+	}
 }
 
 func (a *App) CreateEvent(ctx context.Context, id, title string) error {

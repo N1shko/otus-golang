@@ -1,0 +1,17 @@
+goos: linux
+goarch: amd64
+pkg: github.com/N1shko/otus-golang/hw10_program_optimization
+cpu: 12th Gen Intel(R) Core(TM) i5-12500H
+BenchmarkGetDomainStat
+BenchmarkGetDomainStat-16    	       6	 198192671 ns/op	27548894 B/op	  701041 allocs/op
+BenchmarkGetDomainStat-16    	       6	 193532088 ns/op	27548774 B/op	  701039 allocs/op
+BenchmarkGetDomainStat-16    	       6	 195060385 ns/op	27548582 B/op	  701038 allocs/op
+BenchmarkGetDomainStat-16    	       6	 197104004 ns/op	27549212 B/op	  701041 allocs/op
+BenchmarkGetDomainStat-16    	       6	 194611147 ns/op	27548273 B/op	  701037 allocs/op
+BenchmarkGetDomainStat-16    	       6	 196540767 ns/op	27549249 B/op	  701041 allocs/op
+BenchmarkGetDomainStat-16    	       6	 199190276 ns/op	27549204 B/op	  701041 allocs/op
+BenchmarkGetDomainStat-16    	       6	 197162310 ns/op	27548996 B/op	  701040 allocs/op
+BenchmarkGetDomainStat-16    	       6	 197243822 ns/op	27548865 B/op	  701040 allocs/op
+BenchmarkGetDomainStat-16    	       6	 198907102 ns/op	27548646 B/op	  701039 allocs/op
+PASS
+ok  	github.com/N1shko/otus-golang/hw10_program_optimization	16.168s
