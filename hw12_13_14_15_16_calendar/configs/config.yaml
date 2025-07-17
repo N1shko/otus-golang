@@ -1,5 +1,15 @@
-[logger]
-level = "INFO"
-
-# TODO
-# ...
+logger:
+  level: INFO
+server:
+  port: "8080"
+storage:
+  type: db
+  db:
+    host: "localhost"
+    port: "5432"
+    database: "calendar"
+    user: "calendar"
+    password: "calendar"
+    connectionString: ""
+  local:
+    path: ""
