@@ -6,10 +6,11 @@ import (
 	"time"
 
 	"github.com/N1shko/otus-golang/hw12_13_14_15_calendar/internal/storage"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 )
 
-func makeTestEvent(id string) storage.Event {
+func makeTestEvent(id uuid.UUID) storage.Event {
 	now := time.Now()
 	return storage.Event{
 		ID:          id,
@@ -25,7 +26,7 @@ func makeTestEvent(id string) storage.Event {
 func TestAddEvent(t *testing.T) {
 	s := New()
 	ctx := context.Background()
-	e := makeTestEvent("1")
+	e := makeTestEvent(uuid.New())
 
 	err := s.AddEvent(ctx, e)
 
@@ -38,8 +39,8 @@ func TestAddEvent(t *testing.T) {
 func TestUpdateEvent(t *testing.T) {
 	s := New()
 	ctx := context.Background()
-
-	e := makeTestEvent("1")
+	unique := uuid.New()
+	e := makeTestEvent(unique)
 	err := s.UpdateEvent(ctx, e)
 	require.ErrorIs(t, err, storage.ErrNotFound)
 
@@ -48,15 +49,16 @@ func TestUpdateEvent(t *testing.T) {
 	err = s.UpdateEvent(ctx, e)
 	require.NoError(t, err)
 
-	got, _ := s.GetEvent(ctx, "1")
+	got, _ := s.GetEvent(ctx, unique)
 	require.Equal(t, "Updated Title", got.Title)
 }
 
 func TestDeleteEvent(t *testing.T) {
 	s := New()
 	ctx := context.Background()
+	unique := uuid.New()
 
-	e := makeTestEvent("1")
+	e := makeTestEvent(unique)
 	err := s.DeleteEvent(ctx, e)
 	require.ErrorIs(t, err, storage.ErrNotFound)
 
@@ -64,7 +66,7 @@ func TestDeleteEvent(t *testing.T) {
 	err = s.DeleteEvent(ctx, e)
 	require.NoError(t, err)
 
-	_, err = s.GetEvent(ctx, "1")
+	_, err = s.GetEvent(ctx, unique)
 	require.ErrorIs(t, err, storage.ErrNotFound)
 }
 
@@ -76,8 +78,8 @@ func TestListEvents(t *testing.T) {
 	require.NoError(t, err)
 	require.Empty(t, events)
 
-	_ = s.AddEvent(ctx, makeTestEvent("1"))
-	_ = s.AddEvent(ctx, makeTestEvent("2"))
+	_ = s.AddEvent(ctx, makeTestEvent(uuid.New()))
+	_ = s.AddEvent(ctx, makeTestEvent(uuid.New()))
 
 	events, err = s.ListEvents(ctx)
 	require.NoError(t, err)

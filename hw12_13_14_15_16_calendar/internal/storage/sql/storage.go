@@ -5,6 +5,7 @@ import (
 	"database/sql"
 
 	"github.com/N1shko/otus-golang/hw12_13_14_15_calendar/internal/storage"
+	"github.com/google/uuid"
 )
 
 type Storage struct {
@@ -27,8 +28,9 @@ func (s *Storage) UpdateEvent(ctx context.Context, e storage.Event) error {
 	query := `UPDATE events
 		SET title = $2, date_start = $3, date_end = $4, descr = $5, user_id = $6, send_before = $7
 		WHERE id = $1`
+	id := e.ID.String()
 	res, err := s.db.ExecContext(ctx, query,
-		e.ID, e.Title, e.DateStart, e.DateEnd, e.Description, e.UserID, e.SendBefore,
+		id, e.Title, e.DateStart, e.DateEnd, e.Description, e.UserID, e.SendBefore,
 	)
 	if err != nil {
 		return err
@@ -82,7 +84,7 @@ func (s *Storage) ListEvents(ctx context.Context) ([]storage.Event, error) {
 	return events, rows.Err()
 }
 
-func (s *Storage) GetEvent(ctx context.Context, id string) (storage.Event, error) {
+func (s *Storage) GetEvent(ctx context.Context, id uuid.UUID) (storage.Event, error) {
 	query := `SELECT id, title, date_start, date_end, descr, user_id, send_before
 		FROM events
 		WHERE id = $1`

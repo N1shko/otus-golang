@@ -5,6 +5,7 @@ import (
 
 	"github.com/N1shko/otus-golang/hw12_13_14_15_calendar/internal/logger"
 	"github.com/N1shko/otus-golang/hw12_13_14_15_calendar/internal/storage"
+	"github.com/google/uuid"
 )
 
 type App struct {
@@ -17,6 +18,7 @@ type Storage interface {
 	UpdateEvent(context.Context, storage.Event) error
 	DeleteEvent(context.Context, storage.Event) error
 	ListEvents(context.Context) ([]storage.Event, error)
+	GetEvent(context.Context, uuid.UUID) (storage.Event, error)
 }
 
 func New(logger *logger.Logger, storage Storage) *App {
@@ -26,10 +28,24 @@ func New(logger *logger.Logger, storage Storage) *App {
 	}
 }
 
-func (a *App) CreateEvent(_ context.Context, _, _ string) error {
-	// TODO
-	return nil
-	// return a.storage.CreateEvent(storage.Event{ID: id, Title: title})
+func (a *App) AddEvent(ctx context.Context, event storage.Event) error {
+	return a.storage.AddEvent(ctx, event)
+}
+
+func (a *App) UpdateEvent(ctx context.Context, event storage.Event) error {
+	return a.storage.UpdateEvent(ctx, event)
+}
+
+func (a *App) DeleteEvent(ctx context.Context, event storage.Event) error {
+	return a.storage.DeleteEvent(ctx, event)
+}
+
+func (a *App) ListEvents(ctx context.Context) ([]storage.Event, error) {
+	return a.storage.ListEvents(ctx)
+}
+
+func (a *App) GetEvent(ctx context.Context, id uuid.UUID) (storage.Event, error) {
+	return a.storage.GetEvent(ctx, id)
 }
 
 // TODO
