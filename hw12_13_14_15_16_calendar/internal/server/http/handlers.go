@@ -21,11 +21,11 @@ type Handler struct {
 
 type EventPatch struct {
 	Title       string    `json:"title,omitempty"`
-	DateStart   time.Time `json:"date_start,omitempty"`
-	DateEnd     time.Time `json:"date_end,omitempty"`
+	DateStart   time.Time `json:"dateStart,omitempty"`
+	DateEnd     time.Time `json:"dateEnd,omitempty"`
 	Description string    `json:"description,omitempty"`
-	UserID      string    `json:"user_id,omitempty"`
-	SendBefore  time.Time `json:"send_before,omitempty"`
+	UserID      string    `json:"userId,omitempty"`
+	SendBefore  time.Time `json:"sendBefore,omitempty"`
 }
 
 func (h *Handler) Router() http.Handler {
@@ -127,7 +127,6 @@ func (h *Handler) listEvents(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) updateEvent(w http.ResponseWriter, r *http.Request, id uuid.UUID) {
-
 	existingEvent, err := h.app.GetEvent(r.Context(), id)
 	if err != nil {
 		h.logger.Error("Failed to fetch event", "error", err.Error())

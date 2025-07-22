@@ -16,11 +16,11 @@ var (
 type Event struct {
 	ID          uuid.UUID `db:"id" json:"id"`
 	Title       string    `db:"title" json:"title"`
-	DateStart   time.Time `db:"date_start" json:"date_start"`
-	DateEnd     time.Time `db:"date_end" json:"date_end"`
+	DateStart   time.Time `db:"date_start" json:"dateStart"`
+	DateEnd     time.Time `db:"date_end" json:"dateEnd"`
 	Description string    `db:"descr" json:"description"`
-	UserID      string    `db:"user_id" json:"user_id"`
-	SendBefore  time.Time `db:"send_before" json:"send_before"`
+	UserID      string    `db:"user_id" json:"userId"`
+	SendBefore  time.Time `db:"send_before" json:"sendBefore"`
 }
 
 type EventRepo interface {
