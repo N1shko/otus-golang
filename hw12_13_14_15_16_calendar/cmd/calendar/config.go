@@ -17,8 +17,13 @@ type LoggerConf struct {
 }
 
 type ServerConf struct {
-	Port        int    `mapstructure:"port"`
+	Port        Ports  `mapstructure:"port"`
 	StorageType string `mapstructure:"storageType"`
+}
+
+type Ports struct {
+	HTTP string `mapstructure:"http"`
+	Grpc string `mapstructure:"grpc"`
 }
 
 type StorageConf struct {

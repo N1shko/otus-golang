@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/N1shko/otus-golang/hw12_13_14_15_calendar/internal/app"
@@ -58,6 +59,11 @@ func (h *Handler) handleEvents(w http.ResponseWriter, r *http.Request) {
 	case http.MethodPost:
 		h.createEvent(w, r)
 	case http.MethodGet:
+		query := r.URL.Query()
+		if date := query.Get("range"); date != "" {
+			h.listEventsBy(w, r)
+			return
+		}
 		h.listEvents(w, r)
 
 	default:
@@ -188,4 +194,50 @@ func (h *Handler) deleteEvent(w http.ResponseWriter, r *http.Request, id uuid.UU
 	}
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintf(w, "Successfully deleted event %v", event.ID)
+}
+
+func (h *Handler) listEventsBy(w http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query()
+	rangeType := query.Get("range")
+	dateStr := query.Get("date")
+
+	if dateStr == "" && rangeType != "" {
+		http.Error(w, "Missing date parameter", http.StatusBadRequest)
+		return
+	}
+
+	var startTime, endTime time.Time
+	var err error
+
+	if dateStr != "" {
+		startTime, err = time.Parse("2006-01-02", dateStr)
+		if err != nil {
+			http.Error(w, "Invalid date format, use YYYY-MM-DD", http.StatusBadRequest)
+			return
+		}
+	}
+
+	switch strings.ToLower(rangeType) {
+	case "day":
+		endTime = startTime.Add(24 * time.Hour)
+	case "week":
+		endTime = startTime.Add(7 * 24 * time.Hour)
+	case "month":
+		endTime = startTime.AddDate(0, 1, 0)
+	case "":
+		h.listEvents(w, r)
+		return
+	default:
+		http.Error(w, "Invalid range parameter, use 'day', 'week', or 'month'", http.StatusBadRequest)
+		return
+	}
+
+	events, err := h.app.GetEventsByTimeRange(r.Context(), startTime, endTime)
+	if err != nil {
+		http.Error(w, "Failed to retrieve events", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(events)
 }

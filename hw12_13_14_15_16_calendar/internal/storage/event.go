@@ -29,4 +29,5 @@ type EventRepo interface {
 	DeleteEvent(context.Context, Event) error
 	ListEvents(context.Context) ([]Event, error)
 	GetEvent(context.Context, uuid.UUID) (Event, error)
+	GetEventsByTimeRange(context.Context, time.Time, time.Time) ([]Event, error)
 }

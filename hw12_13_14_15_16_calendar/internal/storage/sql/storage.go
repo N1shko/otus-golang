@@ -3,6 +3,7 @@ package sqlstorage
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	"github.com/N1shko/otus-golang/hw12_13_14_15_calendar/internal/storage"
 	"github.com/google/uuid"
@@ -96,4 +97,32 @@ func (s *Storage) GetEvent(ctx context.Context, id uuid.UUID) (storage.Event, er
 		return storage.Event{}, err
 	}
 	return e, nil
+}
+
+func (s *Storage) GetEventsByTimeRange(
+	ctx context.Context,
+	dateStart time.Time,
+	dateEnd time.Time,
+) ([]storage.Event, error) {
+	query := `SELECT id, title, date_start, date_end, descr, user_id, send_before
+		FROM events
+		WHERE date_start >= $1 AND date_start <= $2`
+	rows, err := s.db.QueryContext(ctx, query, dateStart, dateEnd)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var events []storage.Event
+	for rows.Next() {
+		var e storage.Event
+		err := rows.Scan(
+			&e.ID, &e.Title, &e.DateStart, &e.DateEnd, &e.Description, &e.UserID, &e.SendBefore,
+		)
+		if err != nil {
+			return nil, err
+		}
+		events = append(events, e)
+	}
+	return events, rows.Err()
 }

@@ -74,7 +74,7 @@ func main() {
 		log.Fatalf("unsupported storage type: %s", config.Storage.Type) //nolint:gocritic
 	}
 	calendar := app.New(logg, repo)
-	server := internalhttp.NewServer(logg, ":8080", calendar)
+	server := internalhttp.NewServer(logg, ":"+config.Server.Port.HTTP, calendar)
 
 	ctx, cancel := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
 	defer cancel()

@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"time"
 
 	"github.com/N1shko/otus-golang/hw12_13_14_15_calendar/internal/logger"
 	"github.com/N1shko/otus-golang/hw12_13_14_15_calendar/internal/storage"
@@ -19,6 +20,7 @@ type Storage interface {
 	DeleteEvent(context.Context, storage.Event) error
 	ListEvents(context.Context) ([]storage.Event, error)
 	GetEvent(context.Context, uuid.UUID) (storage.Event, error)
+	GetEventsByTimeRange(context.Context, time.Time, time.Time) ([]storage.Event, error)
 }
 
 func New(logger *logger.Logger, storage Storage) *App {
@@ -48,4 +50,10 @@ func (a *App) GetEvent(ctx context.Context, id uuid.UUID) (storage.Event, error)
 	return a.storage.GetEvent(ctx, id)
 }
 
-// TODO
+func (a *App) GetEventsByTimeRange(
+	ctx context.Context,
+	dateStart time.Time,
+	dateEnd time.Time,
+) ([]storage.Event, error) {
+	return a.storage.GetEventsByTimeRange(ctx, dateStart, dateEnd)
+}
