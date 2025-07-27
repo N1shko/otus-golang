@@ -10,7 +10,7 @@ import (
 )
 
 type App struct {
-	logger  *logger.Logger
+	Logger  *logger.Logger
 	storage storage.EventRepo
 }
 
@@ -29,6 +29,8 @@ func New(logger *logger.Logger, storage Storage) *App {
 		storage,
 	}
 }
+
+// Just a simple remapping of functions to storage functions in order to keep abstract layer
 
 func (a *App) AddEvent(ctx context.Context, event storage.Event) error {
 	return a.storage.AddEvent(ctx, event)

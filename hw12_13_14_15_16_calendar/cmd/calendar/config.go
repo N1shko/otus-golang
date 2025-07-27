@@ -23,7 +23,7 @@ type ServerConf struct {
 
 type Ports struct {
 	HTTP string `mapstructure:"http"`
-	Grpc string `mapstructure:"grpc"`
+	GRPC string `mapstructure:"grpc"`
 }
 
 type StorageConf struct {

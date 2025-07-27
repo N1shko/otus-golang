@@ -3,7 +3,6 @@ package internalhttp
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -12,29 +11,32 @@ import (
 )
 
 type Server struct {
-	logger *logger.Logger
 	server *http.Server
+	logger *logger.Logger
+	app    *app.App
 }
 
 type Logger interface{}
 
-func NewServer(logger *logger.Logger, address string, app *app.App) *Server {
-	handler := NewHandler(logger, app)
+func NewServer(address string, app *app.App) *Server {
+	handler := NewHandler(app)
 	return &Server{
-		logger,
-		&http.Server{
+		app:    app,
+		logger: app.Logger,
+		server: &http.Server{
 			Addr:         address,
 			ReadTimeout:  10 * time.Second,
 			WriteTimeout: 10 * time.Second,
-			Handler:      handler.Router(),
+			Handler:      LoggingMiddleware(handler.mux, handler.logger),
 		},
 	}
 }
 
 func (s *Server) Start(ctx context.Context) error {
 	go func() {
+		s.logger.Info("HTTP server listening", "address", s.server.Addr)
 		if err := s.server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			fmt.Print(err.Error())
+			s.logger.Error(err.Error())
 		}
 	}()
 
@@ -44,10 +46,10 @@ func (s *Server) Start(ctx context.Context) error {
 }
 
 func (s *Server) Stop(ctx context.Context) error {
-	fmt.Print("Server Shutdown.")
+	s.logger.Info("HTTP server Shutdown.")
 
 	if err := s.server.Shutdown(ctx); err != nil {
-		fmt.Print("Server Shutdown error:" + err.Error())
+		s.logger.Error("HTTP server Shutdown error:" + err.Error())
 	}
 
 	return nil

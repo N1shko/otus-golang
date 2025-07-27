@@ -29,17 +29,13 @@ type EventPatch struct {
 	SendBefore  time.Time `json:"sendBefore,omitempty"`
 }
 
-func (h *Handler) Router() http.Handler {
-	return LoggingMiddleware(h.mux, h.logger)
-}
-
 type Application interface {
 	CreateEvent(context.Context, storage.Event) error
 }
 
-func NewHandler(logger *logger.Logger, app *app.App) *Handler {
+func NewHandler(app *app.App) *Handler {
 	mux := http.NewServeMux()
-	handler := &Handler{logger, app, mux}
+	handler := &Handler{app.Logger, app, mux}
 	mux.HandleFunc("/hello", HelloHandler)
 	mux.HandleFunc("/events", handler.handleEvents)
 	mux.HandleFunc("/events/", handler.handleEventByID)
@@ -72,18 +68,11 @@ func (h *Handler) handleEvents(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) handleEventByID(w http.ResponseWriter, r *http.Request) {
-	idStr := r.URL.Path[len("/events/"):]
-	id, err := uuid.Parse(idStr)
-	if err != nil {
-		http.Error(w, "Invalid event ID", http.StatusBadRequest)
-		return
-	}
-
 	switch r.Method {
 	case http.MethodPatch, http.MethodPut:
-		h.updateEvent(w, r, id)
+		h.updateEvent(w, r)
 	case http.MethodDelete:
-		h.deleteEvent(w, r, id)
+		h.deleteEvent(w, r)
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
@@ -132,7 +121,13 @@ func (h *Handler) listEvents(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *Handler) updateEvent(w http.ResponseWriter, r *http.Request, id uuid.UUID) {
+func (h *Handler) updateEvent(w http.ResponseWriter, r *http.Request) {
+	idStr := r.URL.Path[len("/events/"):]
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		http.Error(w, "Invalid event ID", http.StatusBadRequest)
+		return
+	}
 	existingEvent, err := h.app.GetEvent(r.Context(), id)
 	if err != nil {
 		h.logger.Error("Failed to fetch event", "error", err.Error())
@@ -142,6 +137,7 @@ func (h *Handler) updateEvent(w http.ResponseWriter, r *http.Request, id uuid.UU
 
 	var patch EventPatch
 	if err := json.NewDecoder(r.Body).Decode(&patch); err != nil {
+		fmt.Print(err)
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
@@ -184,7 +180,13 @@ func (h *Handler) updateEvent(w http.ResponseWriter, r *http.Request, id uuid.UU
 	fmt.Fprintf(w, "Successfully updated event %v", updatedEvent.ID)
 }
 
-func (h *Handler) deleteEvent(w http.ResponseWriter, r *http.Request, id uuid.UUID) {
+func (h *Handler) deleteEvent(w http.ResponseWriter, r *http.Request) {
+	idStr := r.URL.Path[len("/events/"):]
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		http.Error(w, "Invalid event ID", http.StatusBadRequest)
+		return
+	}
 	event := storage.Event{ID: id}
 
 	if err := h.app.DeleteEvent(r.Context(), event); err != nil {

@@ -6,13 +6,14 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
 	"github.com/N1shko/otus-golang/hw12_13_14_15_calendar/internal/app"
 	"github.com/N1shko/otus-golang/hw12_13_14_15_calendar/internal/logger"
+	internalgrpc "github.com/N1shko/otus-golang/hw12_13_14_15_calendar/internal/server/grpc"
 	internalhttp "github.com/N1shko/otus-golang/hw12_13_14_15_calendar/internal/server/http"
 	"github.com/N1shko/otus-golang/hw12_13_14_15_calendar/internal/storage"
 	memorystorage "github.com/N1shko/otus-golang/hw12_13_14_15_calendar/internal/storage/memory"
@@ -74,27 +75,51 @@ func main() {
 		log.Fatalf("unsupported storage type: %s", config.Storage.Type) //nolint:gocritic
 	}
 	calendar := app.New(logg, repo)
-	server := internalhttp.NewServer(logg, ":"+config.Server.Port.HTTP, calendar)
-
+	httpServer := internalhttp.NewServer(":"+config.Server.Port.HTTP, calendar)
+	grpcServer := internalgrpc.NewServer(":"+config.Server.Port.GRPC, calendar)
 	ctx, cancel := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
 	defer cancel()
 
+	// Starting both servers
+	var wg sync.WaitGroup
+	wg.Add(2)
 	go func() {
-		<-ctx.Done()
-
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
-		defer cancel()
-
-		if err := server.Stop(ctx); err != nil {
-			logg.Error("failed to stop http server: " + err.Error())
+		defer wg.Done()
+		if err := httpServer.Start(ctx); err != nil {
+			logg.Error("HTTP server failed", "error", err.Error())
 		}
 	}()
 
+	go func() {
+		defer wg.Done()
+		if err := grpcServer.Start(ctx); err != nil {
+			logg.Error("gRPC server failed", "error", err.Error())
+		}
+	}()
 	logg.Info("calendar is running...")
+	<-ctx.Done() // Waiting for cancellation
+	logg.Info("stopping the calendar...")
 
-	if err := server.Start(ctx); err != nil {
-		logg.Error("failed to start http server: " + err.Error())
-		cancel()
-		os.Exit(1)
-	}
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer shutdownCancel()
+
+	var shutdownWG sync.WaitGroup
+	shutdownWG.Add(2)
+	// Gracefully shutting down both servers
+	go func() {
+		defer shutdownWG.Done()
+		if err := httpServer.Stop(shutdownCtx); err != nil {
+			logg.Error("HTTP server shutdown error", "error", err.Error())
+		}
+	}()
+
+	go func() {
+		defer shutdownWG.Done()
+		if err := grpcServer.Stop(shutdownCtx); err != nil {
+			logg.Error("gRPC server shutdown error", "error", err.Error())
+		}
+	}()
+
+	shutdownWG.Wait()
+	logg.Info("Application shutdown complete")
 }
