@@ -27,3 +27,4 @@ Thumbs.db
 .vscode/
 *.bak
 db_data
+*.pb.go

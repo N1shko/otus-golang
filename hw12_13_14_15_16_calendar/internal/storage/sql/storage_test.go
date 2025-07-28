@@ -8,10 +8,11 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/N1shko/otus-golang/hw12_13_14_15_calendar/internal/storage"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 )
 
-func makeTestEvent(id string) storage.Event {
+func makeTestEvent(id uuid.UUID) storage.Event {
 	now := time.Now()
 	return storage.Event{
 		ID:          id,
@@ -34,7 +35,7 @@ func TestStorage_AddEvent(t *testing.T) {
 	s := NewPostgresStorage(db)
 
 	event := storage.Event{
-		ID:          "1",
+		ID:          uuid.New(),
 		Title:       "Test Event",
 		DateStart:   time.Now(),
 		DateEnd:     time.Now().Add(time.Hour),
@@ -62,7 +63,7 @@ func TestStorage_UpdateEvent(t *testing.T) {
 	defer db.Close()
 
 	s := NewPostgresStorage(db)
-	event := makeTestEvent("1")
+	event := makeTestEvent(uuid.New())
 	event.Title = "Updated Title"
 
 	mock.ExpectExec(regexp.QuoteMeta(`UPDATE events
@@ -82,7 +83,7 @@ func TestStorage_UpdateEvent_NotFound(t *testing.T) {
 	defer db.Close()
 
 	s := NewPostgresStorage(db)
-	event := makeTestEvent("1")
+	event := makeTestEvent(uuid.New())
 
 	mock.ExpectExec(regexp.QuoteMeta(`UPDATE events
 		SET title = $2, date_start = $3, date_end = $4, descr = $5, user_id = $6, send_before = $7
@@ -100,7 +101,7 @@ func TestStorage_DeleteEvent(t *testing.T) {
 	defer db.Close()
 
 	s := NewPostgresStorage(db)
-	event := makeTestEvent("1")
+	event := makeTestEvent(uuid.New())
 
 	mock.ExpectExec(regexp.QuoteMeta(`DELETE FROM events WHERE id = $1`)).
 		WithArgs(event.ID).

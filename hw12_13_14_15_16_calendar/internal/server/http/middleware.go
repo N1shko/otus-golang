@@ -2,6 +2,7 @@ package internalhttp
 
 import (
 	"fmt"
+	"net"
 	"net/http"
 	"strconv"
 	"time"
@@ -25,16 +26,9 @@ func LoggingMiddleware(next http.Handler, logger *logger.Logger) http.Handler {
 		lrw := &loggingResponseWriter{ResponseWriter: w, statusCode: http.StatusOK}
 		next.ServeHTTP(lrw, r)
 		latency := fmt.Sprintf("%d", time.Since(start).Milliseconds())
-		clientIP := r.RemoteAddr
-		if colon := len(clientIP) - 1; colon > 0 && clientIP[colon] == ']' {
-			clientIP = clientIP[:colon]
-		} else if colon := len(clientIP); colon > 0 {
-			for i := colon - 1; i >= 0; i-- {
-				if clientIP[i] == ':' {
-					clientIP = clientIP[:i]
-					break
-				}
-			}
+		clientIP, _, err := net.SplitHostPort(r.RemoteAddr)
+		if err != nil {
+			clientIP = r.RemoteAddr
 		}
 		date := time.Now().UTC().Format("[02/Jan/2006:15:04:05 -0700]")
 

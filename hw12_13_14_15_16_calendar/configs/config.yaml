@@ -1,7 +1,9 @@
 logger:
   level: INFO
 server:
-  port: "8080"
+  port: 
+    http: 8080
+    grpc: 10001
 storage:
   type: db
   db:
@@ -11,5 +13,3 @@ storage:
     user: "calendar"
     password: "calendar"
     connectionString: ""
-  local:
-    path: ""
