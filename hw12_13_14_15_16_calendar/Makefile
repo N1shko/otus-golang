@@ -33,7 +33,7 @@ test:
 migrate:
 	goose postgres "user=calendar dbname=calendar sslmode=disable password=calendar host=127.0.0.1" up -dir migrations
 
-install-lint-deps:
+install-lint-deps: build
 	(which golangci-lint > /dev/null) || curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.57.2
 
 lint: install-lint-deps

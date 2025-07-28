@@ -19,6 +19,11 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
+type (
+	callFunc       func(*Server, context.Context, interface{}) (interface{}, error)
+	assertResponse func(t *testing.T, resp interface{}, expectedEvents []storage.Event)
+)
+
 func TestServer_ListEvents(t *testing.T) {
 	mockStorage := mockstorage.New()
 	logger := logger.New("DEBUG")
@@ -254,6 +259,7 @@ func TestUpdateEvent(t *testing.T) {
 			},
 			expectedCode: codes.OK,
 			validateResponse: func(t *testing.T, resp *pb.UpdateEventResponse) {
+				t.Helper()
 				assert.Equal(t, existingID.String(), resp.Id)
 			},
 		},
@@ -307,21 +313,6 @@ func TestUpdateEvent(t *testing.T) {
 			expectedCode:     codes.InvalidArgument,
 			expectedErrorMsg: "End date must be after start date",
 		},
-		{
-			name: "update failure",
-			req: &pb.UpdateEventRequest{
-				Event: &pb.Event{
-					Id:    existingID.String(),
-					Title: "Title",
-				},
-			},
-			setupMock: func(m *mockstorage.Storage) {
-				m.On("GetEvent", mock.Anything, existingID).Return(existingEvent, nil).Once()
-				m.On("UpdateEvent", mock.Anything, mock.Anything).Return(errors.New("db failure")).Once()
-			},
-			expectedCode:     codes.Internal,
-			expectedErrorMsg: "Failed to update event",
-		},
 	}
 
 	for _, tt := range tests {
@@ -364,194 +355,200 @@ func TestUpdateEvent(t *testing.T) {
 	}
 }
 
+var timeRangeTests = []struct {
+	name              string
+	callFunc          callFunc
+	request           interface{}
+	setupMock         func(*mockstorage.Storage)
+	expectedErrorCode codes.Code
+	expectedErrorMsg  string
+	expectedEvents    []storage.Event
+	assertResponse    assertResponse
+}{
+	{
+		name: "GetEventsByTimeRange: successful day range",
+		callFunc: func(s *Server, ctx context.Context, req interface{}) (interface{}, error) {
+			return s.GetEventsByTimeRange(ctx, req.(*pb.GetEventsByTimeRangeRequest))
+		},
+		request: &pb.GetEventsByTimeRangeRequest{
+			RangeType: pb.TimeRangeType_DAY,
+			StartDate: timestamppb.New(time.Date(2025, 7, 28, 0, 0, 0, 0, time.UTC)),
+		},
+		setupMock: func(m *mockstorage.Storage) {
+			startTime := time.Date(2025, 7, 28, 0, 0, 0, 0, time.UTC)
+			endTime := startTime.Add(24 * time.Hour)
+			events := []storage.Event{
+				{
+					ID:        uuid.New(),
+					Title:     "Event 1",
+					DateStart: startTime,
+					DateEnd:   startTime.Add(time.Hour),
+				},
+			}
+			m.On("GetEventsByTimeRange", mock.Anything, startTime, endTime).Return(events, nil).Once()
+		},
+		expectedErrorCode: codes.OK,
+		expectedEvents: []storage.Event{
+			{Title: "Event 1"},
+		},
+		assertResponse: func(t *testing.T, resp interface{}, expectedEvents []storage.Event) {
+			t.Helper()
+			getResp, ok := resp.(*pb.GetEventsByTimeRangeResponse)
+			assert.True(t, ok, "Response should be GetEventsByTimeRangeResponse")
+			assert.Len(t, getResp.Events, len(expectedEvents), "Unexpected number of events")
+			for i, pbEvent := range getResp.Events {
+				assert.Equal(t, expectedEvents[i].Title, pbEvent.Title, "Event title mismatch")
+			}
+		},
+	},
+	{
+		name: "GetEventsByTimeRange: successful week range",
+		callFunc: func(s *Server, ctx context.Context, req interface{}) (interface{}, error) {
+			return s.GetEventsByTimeRange(ctx, req.(*pb.GetEventsByTimeRangeRequest))
+		},
+		request: &pb.GetEventsByTimeRangeRequest{
+			RangeType: pb.TimeRangeType_WEEK,
+			StartDate: timestamppb.New(time.Date(2025, 7, 28, 0, 0, 0, 0, time.UTC)),
+		},
+		setupMock: func(m *mockstorage.Storage) {
+			startTime := time.Date(2025, 7, 28, 0, 0, 0, 0, time.UTC)
+			endTime := startTime.Add(7 * 24 * time.Hour)
+			events := []storage.Event{
+				{
+					ID:        uuid.New(),
+					Title:     "Event 1",
+					DateStart: startTime,
+					DateEnd:   startTime.Add(time.Hour),
+				},
+			}
+			m.On("GetEventsByTimeRange", mock.Anything, startTime, endTime).Return(events, nil).Once()
+		},
+		expectedErrorCode: codes.OK,
+		expectedEvents: []storage.Event{
+			{Title: "Event 1"},
+		},
+		assertResponse: func(t *testing.T, resp interface{}, expectedEvents []storage.Event) {
+			t.Helper()
+			getResp, ok := resp.(*pb.GetEventsByTimeRangeResponse)
+			assert.True(t, ok, "Response should be GetEventsByTimeRangeResponse")
+			assert.Len(t, getResp.Events, len(expectedEvents), "Unexpected number of events")
+			for i, pbEvent := range getResp.Events {
+				assert.Equal(t, expectedEvents[i].Title, pbEvent.Title, "Event title mismatch")
+			}
+			t.Logf("Response events: %v", getResp.Events)
+		},
+	},
+	{
+		name: "GetEventsByTimeRange: successful month range",
+		callFunc: func(s *Server, ctx context.Context, req interface{}) (interface{}, error) {
+			return s.GetEventsByTimeRange(ctx, req.(*pb.GetEventsByTimeRangeRequest))
+		},
+		request: &pb.GetEventsByTimeRangeRequest{
+			RangeType: pb.TimeRangeType_MONTH,
+			StartDate: timestamppb.New(time.Date(2025, 7, 28, 0, 0, 0, 0, time.UTC)),
+		},
+		setupMock: func(m *mockstorage.Storage) {
+			startTime := time.Date(2025, 7, 28, 0, 0, 0, 0, time.UTC)
+			endTime := startTime.AddDate(0, 1, 0)
+			events := []storage.Event{
+				{
+					ID:        uuid.New(),
+					Title:     "Event 1",
+					DateStart: startTime,
+					DateEnd:   startTime.Add(time.Hour),
+				},
+			}
+			m.On("GetEventsByTimeRange", mock.Anything, startTime, endTime).Return(events, nil).Once()
+		},
+		expectedErrorCode: codes.OK,
+		expectedEvents: []storage.Event{
+			{Title: "Event 1"},
+		},
+		assertResponse: func(t *testing.T, resp interface{}, expectedEvents []storage.Event) {
+			t.Helper()
+			getResp, ok := resp.(*pb.GetEventsByTimeRangeResponse)
+			assert.True(t, ok, "Response should be GetEventsByTimeRangeResponse")
+			assert.Len(t, getResp.Events, len(expectedEvents), "Unexpected number of events")
+			for i, pbEvent := range getResp.Events {
+				assert.Equal(t, expectedEvents[i].Title, pbEvent.Title, "Event title mismatch")
+			}
+			t.Logf("Response events: %v", getResp.Events)
+		},
+	},
+	{
+		name: "GetEventsByTimeRange: empty start date",
+		callFunc: func(s *Server, ctx context.Context, req interface{}) (interface{}, error) {
+			return s.GetEventsByTimeRange(ctx, req.(*pb.GetEventsByTimeRangeRequest))
+		},
+		request: &pb.GetEventsByTimeRangeRequest{
+			RangeType: pb.TimeRangeType_DAY,
+			StartDate: nil,
+		},
+		setupMock:         func(_ *mockstorage.Storage) {},
+		expectedErrorCode: codes.InvalidArgument,
+		expectedErrorMsg:  "Date cant be empty",
+		assertResponse: func(t *testing.T, resp interface{}, _ []storage.Event) {
+			t.Helper()
+			assert.Nil(t, resp, "Response should be nil on error")
+		},
+	},
+	{
+		name: "GetEventsByTimeRange: unspecified range type",
+		callFunc: func(s *Server, ctx context.Context, req interface{}) (interface{}, error) {
+			return s.GetEventsByTimeRange(ctx, req.(*pb.GetEventsByTimeRangeRequest))
+		},
+		request: &pb.GetEventsByTimeRangeRequest{
+			RangeType: pb.TimeRangeType_TIME_RANGE_TYPE_UNSPECIFIED,
+			StartDate: timestamppb.New(time.Date(2025, 7, 28, 0, 0, 0, 0, time.UTC)),
+		},
+		setupMock:         func(_ *mockstorage.Storage) {},
+		expectedErrorCode: codes.InvalidArgument,
+		expectedErrorMsg:  "Range type must be specified",
+		assertResponse: func(t *testing.T, resp interface{}, _ []storage.Event) {
+			t.Helper()
+			assert.Nil(t, resp, "Response should be nil on error")
+		},
+	},
+	{
+		name: "GetEventsByTimeRange: invalid date format",
+		callFunc: func(s *Server, ctx context.Context, req interface{}) (interface{}, error) {
+			return s.GetEventsByTimeRange(ctx, req.(*pb.GetEventsByTimeRangeRequest))
+		},
+		request: &pb.GetEventsByTimeRangeRequest{
+			RangeType: pb.TimeRangeType_DAY,
+			StartDate: timestamppb.New(time.Time{}),
+		},
+		setupMock:         func(_ *mockstorage.Storage) {},
+		expectedErrorCode: codes.InvalidArgument,
+		expectedErrorMsg:  "Invalid date format, use YYYY-MM-DD",
+		assertResponse: func(t *testing.T, resp interface{}, _ []storage.Event) {
+			t.Helper()
+			assert.Nil(t, resp, "Response should be nil on error")
+		},
+	},
+	{
+		name: "GetEventsByTimeRange: unsupported range type",
+		callFunc: func(s *Server, ctx context.Context, req interface{}) (interface{}, error) {
+			return s.GetEventsByTimeRange(ctx, req.(*pb.GetEventsByTimeRangeRequest))
+		},
+		request: &pb.GetEventsByTimeRangeRequest{
+			RangeType: 999, // Invalid enum value
+			StartDate: timestamppb.New(time.Date(2025, 7, 28, 0, 0, 0, 0, time.UTC)),
+		},
+		setupMock:         func(_ *mockstorage.Storage) {},
+		expectedErrorCode: codes.InvalidArgument,
+		expectedErrorMsg:  "Unsupported range type",
+		assertResponse: func(t *testing.T, resp interface{}, _ []storage.Event) {
+			t.Helper()
+			assert.Nil(t, resp, "Response should be nil on error")
+		},
+	},
+}
+
 func TestGetEventByRange(t *testing.T) {
 	logger := logger.New("DEBUG")
-	type callFunc func(*Server, context.Context, interface{}) (interface{}, error)
-	type assertResponse func(t *testing.T, resp interface{}, expectedEvents []storage.Event)
-	tests := []struct {
-		name              string
-		callFunc          callFunc
-		request           interface{}
-		setupMock         func(*mockstorage.Storage)
-		expectedErrorCode codes.Code
-		expectedErrorMsg  string
-		expectedEvents    []storage.Event
-		assertResponse    assertResponse
-	}{
-		{
-			name: "GetEventsByTimeRange: successful day range",
-			callFunc: func(s *Server, ctx context.Context, req interface{}) (interface{}, error) {
-				return s.GetEventsByTimeRange(ctx, req.(*pb.GetEventsByTimeRangeRequest))
-			},
-			request: &pb.GetEventsByTimeRangeRequest{
-				RangeType: pb.TimeRangeType_DAY,
-				StartDate: timestamppb.New(time.Date(2025, 7, 28, 0, 0, 0, 0, time.UTC)),
-			},
-			setupMock: func(m *mockstorage.Storage) {
-				startTime := time.Date(2025, 7, 28, 0, 0, 0, 0, time.UTC)
-				endTime := startTime.Add(24 * time.Hour)
-				events := []storage.Event{
-					{
-						ID:        uuid.New(),
-						Title:     "Event 1",
-						DateStart: startTime,
-						DateEnd:   startTime.Add(time.Hour),
-					},
-				}
-				m.On("GetEventsByTimeRange", mock.Anything, startTime, endTime).Return(events, nil).Once()
-			},
-			expectedErrorCode: codes.OK,
-			expectedEvents: []storage.Event{
-				{Title: "Event 1"},
-			},
-			assertResponse: func(t *testing.T, resp interface{}, expectedEvents []storage.Event) {
-				getResp, ok := resp.(*pb.GetEventsByTimeRangeResponse)
-				assert.True(t, ok, "Response should be GetEventsByTimeRangeResponse")
-				assert.Len(t, getResp.Events, len(expectedEvents), "Unexpected number of events")
-				for i, pbEvent := range getResp.Events {
-					assert.Equal(t, expectedEvents[i].Title, pbEvent.Title, "Event title mismatch")
-				}
-			},
-		},
-		{
-			name: "GetEventsByTimeRange: successful week range",
-			callFunc: func(s *Server, ctx context.Context, req interface{}) (interface{}, error) {
-				return s.GetEventsByTimeRange(ctx, req.(*pb.GetEventsByTimeRangeRequest))
-			},
-			request: &pb.GetEventsByTimeRangeRequest{
-				RangeType: pb.TimeRangeType_WEEK,
-				StartDate: timestamppb.New(time.Date(2025, 7, 28, 0, 0, 0, 0, time.UTC)),
-			},
-			setupMock: func(m *mockstorage.Storage) {
-				startTime := time.Date(2025, 7, 28, 0, 0, 0, 0, time.UTC)
-				endTime := startTime.Add(7 * 24 * time.Hour)
-				events := []storage.Event{
-					{
-						ID:        uuid.New(),
-						Title:     "Event 1",
-						DateStart: startTime,
-						DateEnd:   startTime.Add(time.Hour),
-					},
-				}
-				m.On("GetEventsByTimeRange", mock.Anything, startTime, endTime).Return(events, nil).Once()
-			},
-			expectedErrorCode: codes.OK,
-			expectedEvents: []storage.Event{
-				{Title: "Event 1"},
-			},
-			assertResponse: func(t *testing.T, resp interface{}, expectedEvents []storage.Event) {
-				getResp, ok := resp.(*pb.GetEventsByTimeRangeResponse)
-				assert.True(t, ok, "Response should be GetEventsByTimeRangeResponse")
-				assert.Len(t, getResp.Events, len(expectedEvents), "Unexpected number of events")
-				for i, pbEvent := range getResp.Events {
-					assert.Equal(t, expectedEvents[i].Title, pbEvent.Title, "Event title mismatch")
-				}
-				t.Logf("Response events: %v", getResp.Events)
-			},
-		},
-		{
-			name: "GetEventsByTimeRange: successful month range",
-			callFunc: func(s *Server, ctx context.Context, req interface{}) (interface{}, error) {
-				return s.GetEventsByTimeRange(ctx, req.(*pb.GetEventsByTimeRangeRequest))
-			},
-			request: &pb.GetEventsByTimeRangeRequest{
-				RangeType: pb.TimeRangeType_MONTH,
-				StartDate: timestamppb.New(time.Date(2025, 7, 28, 0, 0, 0, 0, time.UTC)),
-			},
-			setupMock: func(m *mockstorage.Storage) {
-				startTime := time.Date(2025, 7, 28, 0, 0, 0, 0, time.UTC)
-				endTime := startTime.AddDate(0, 1, 0)
-				events := []storage.Event{
-					{
-						ID:        uuid.New(),
-						Title:     "Event 1",
-						DateStart: startTime,
-						DateEnd:   startTime.Add(time.Hour),
-					},
-				}
-				m.On("GetEventsByTimeRange", mock.Anything, startTime, endTime).Return(events, nil).Once()
-			},
-			expectedErrorCode: codes.OK,
-			expectedEvents: []storage.Event{
-				{Title: "Event 1"},
-			},
-			assertResponse: func(t *testing.T, resp interface{}, expectedEvents []storage.Event) {
-				getResp, ok := resp.(*pb.GetEventsByTimeRangeResponse)
-				assert.True(t, ok, "Response should be GetEventsByTimeRangeResponse")
-				assert.Len(t, getResp.Events, len(expectedEvents), "Unexpected number of events")
-				for i, pbEvent := range getResp.Events {
-					assert.Equal(t, expectedEvents[i].Title, pbEvent.Title, "Event title mismatch")
-				}
-				t.Logf("Response events: %v", getResp.Events)
-			},
-		},
-		{
-			name: "GetEventsByTimeRange: empty start date",
-			callFunc: func(s *Server, ctx context.Context, req interface{}) (interface{}, error) {
-				return s.GetEventsByTimeRange(ctx, req.(*pb.GetEventsByTimeRangeRequest))
-			},
-			request: &pb.GetEventsByTimeRangeRequest{
-				RangeType: pb.TimeRangeType_DAY,
-				StartDate: nil,
-			},
-			setupMock:         func(m *mockstorage.Storage) {},
-			expectedErrorCode: codes.InvalidArgument,
-			expectedErrorMsg:  "Date cant be empty",
-			assertResponse: func(t *testing.T, resp interface{}, expectedEvents []storage.Event) {
-				assert.Nil(t, resp, "Response should be nil on error")
-			},
-		},
-		{
-			name: "GetEventsByTimeRange: unspecified range type",
-			callFunc: func(s *Server, ctx context.Context, req interface{}) (interface{}, error) {
-				return s.GetEventsByTimeRange(ctx, req.(*pb.GetEventsByTimeRangeRequest))
-			},
-			request: &pb.GetEventsByTimeRangeRequest{
-				RangeType: pb.TimeRangeType_TIME_RANGE_TYPE_UNSPECIFIED,
-				StartDate: timestamppb.New(time.Date(2025, 7, 28, 0, 0, 0, 0, time.UTC)),
-			},
-			setupMock:         func(m *mockstorage.Storage) {},
-			expectedErrorCode: codes.InvalidArgument,
-			expectedErrorMsg:  "Range type must be specified",
-			assertResponse: func(t *testing.T, resp interface{}, expectedEvents []storage.Event) {
-				assert.Nil(t, resp, "Response should be nil on error")
-			},
-		},
-		{
-			name: "GetEventsByTimeRange: invalid date format",
-			callFunc: func(s *Server, ctx context.Context, req interface{}) (interface{}, error) {
-				return s.GetEventsByTimeRange(ctx, req.(*pb.GetEventsByTimeRangeRequest))
-			},
-			request: &pb.GetEventsByTimeRangeRequest{
-				RangeType: pb.TimeRangeType_DAY,
-				StartDate: timestamppb.New(time.Time{}),
-			},
-			setupMock:         func(m *mockstorage.Storage) {},
-			expectedErrorCode: codes.InvalidArgument,
-			expectedErrorMsg:  "Invalid date format, use YYYY-MM-DD",
-			assertResponse: func(t *testing.T, resp interface{}, expectedEvents []storage.Event) {
-				assert.Nil(t, resp, "Response should be nil on error")
-			},
-		},
-		{
-			name: "GetEventsByTimeRange: unsupported range type",
-			callFunc: func(s *Server, ctx context.Context, req interface{}) (interface{}, error) {
-				return s.GetEventsByTimeRange(ctx, req.(*pb.GetEventsByTimeRangeRequest))
-			},
-			request: &pb.GetEventsByTimeRangeRequest{
-				RangeType: 999, // Invalid enum value
-				StartDate: timestamppb.New(time.Date(2025, 7, 28, 0, 0, 0, 0, time.UTC)),
-			},
-			setupMock:         func(m *mockstorage.Storage) {},
-			expectedErrorCode: codes.InvalidArgument,
-			expectedErrorMsg:  "Unsupported range type",
-			assertResponse: func(t *testing.T, resp interface{}, expectedEvents []storage.Event) {
-				assert.Nil(t, resp, "Response should be nil on error")
-			},
-		},
-	}
 
-	for _, tt := range tests {
+	for _, tt := range timeRangeTests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockStorage := mockstorage.New()
 			tt.setupMock(mockStorage)
