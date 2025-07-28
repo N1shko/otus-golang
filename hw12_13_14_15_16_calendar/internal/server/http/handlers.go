@@ -137,7 +137,6 @@ func (h *Handler) updateEvent(w http.ResponseWriter, r *http.Request) {
 
 	var patch EventPatch
 	if err := json.NewDecoder(r.Body).Decode(&patch); err != nil {
-		fmt.Print(err)
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}

@@ -35,14 +35,24 @@ service EventService {
 }
 
 message AddEventRequest {
-  Event event = 1;
+  string title = 1;
+  google.protobuf.Timestamp date_start = 2;
+  google.protobuf.Timestamp date_end = 3;
+  string description = 4;
+  string user_id = 5;
+  google.protobuf.Timestamp send_before = 6;
 }
-message AddEventResponse {}
+
+message AddEventResponse {
+  string id = 1;
+}
 
 message UpdateEventRequest {
   Event event = 1;
 }
-message UpdateEventResponse {}
+message UpdateEventResponse {
+  string id = 1;
+}
 
 message DeleteEventRequest {
   string id = 1;

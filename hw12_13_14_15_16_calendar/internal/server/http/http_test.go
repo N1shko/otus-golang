@@ -3,7 +3,6 @@ package internalhttp
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -217,7 +216,6 @@ func TestHandler(t *testing.T) {
 			assert.Equal(t, tt.expectedStatus, resp.StatusCode)
 			bodyBytes, _ := io.ReadAll(resp.Body)
 			if tt.expectedStatus == http.StatusOK {
-				fmt.Printf(string(bodyBytes))
 				assert.Contains(t, string(bodyBytes), tt.expectedBody)
 				if tt.expectedEvents != nil {
 					var actualEvents []storage.Event

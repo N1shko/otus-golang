@@ -21,15 +21,16 @@ type Server struct {
 }
 
 func NewServer(addr string, app *app.App) *Server {
-	grpcServer := grpc.NewServer(
-		grpc.UnaryInterceptor((&Server{app: app}).LoggingUnaryInterceptor),
-	)
 	s := &Server{
-		server:  grpcServer,
 		address: addr,
 		app:     app,
 		logger:  app.Logger,
 	}
+
+	grpcServer := grpc.NewServer(
+		grpc.UnaryInterceptor(s.LoggingUnaryInterceptor),
+	)
+	s.server = grpcServer
 
 	pb.RegisterEventServiceServer(grpcServer, s)
 	reflection.Register(grpcServer)
